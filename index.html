@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLIPPED</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
+        }
+        .info {
+            color: white;
+            margin-top: 15px;
+            font-size: 14px;
+            padding: 0 10px;
+        }
+        .title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 2.5rem;
+            color: #ff7171;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 113, 113, 0.7);
+        }
+        .subtitle {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 1rem;
+            color: #f0f0f0;
+            line-height: 1.4;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <canvas id="heartCanvas" width="400" height="400"></canvas>
+        <div class="info">
+            <div class="title">FLIPPED</div>
+            <div class="subtitle">Some of my feelings can't be recovered from the beginning.</div>
+        </div>
+    </div>
+
+    <script>
+        // 根据屏幕大小调整画布尺寸
+        function adjustCanvasSize() {
+            const canvas = document.getElementById('heartCanvas');
+            const container = document.querySelector('.container');
+            const maxSize = Math.min(container.clientWidth, window.innerHeight * 0.8);
+
+            canvas.width = maxSize;
+            canvas.height = maxSize;
+
+            return {
+                width: canvas.width,
+                height: canvas.height,
+                centerX: canvas.width / 2,
+                centerY: canvas.height / 2
+            };
+        }
+
+        // 获取调整后的尺寸
+        const canvasSize = adjustCanvasSize();
+        const CANVAS_WIDTH = canvasSize.width;
+        const CANVAS_HEIGHT = canvasSize.height;
+        const CANVAS_CENTER_X = canvasSize.centerX;
+        const CANVAS_CENTER_Y = canvasSize.centerY;
+
+        const IMAGE_ENLARGE = CANVAS_WIDTH / 60; // 根据画布大小动态调整
+        const HEART_COLOR = "#ff7171";
+
+        // 爱心函数
+        function heartFunction(t, shrinkRatio = IMAGE_ENLARGE) {
+            const x = 16 * (Math.sin(t) ** 3);
+            const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+
+            // 放大
+            const enlargedX = x * shrinkRatio;
+            const enlargedY = y * shrinkRatio;
+
+            // 移到画布中央
+            return {
+                x: enlargedX + CANVAS_CENTER_X,
+                y: enlargedY + CANVAS_CENTER_Y
+            };
+        }
+
+        // 随机内部扩散
+        function scatterInside(x, y, beta = 0.15) {
+            const ratioX = -beta * Math.log(Math.random());
+            const ratioY = -beta * Math.log(Math.random());
+
+            const dx = ratioX * (x - CANVAS_CENTER_X);
+            const dy = ratioY * (y - CANVAS_CENTER_Y);
+
+            return {
+                x: x - dx,
+                y: y - dy
+            };
+        }
+
+        // 抖动函数
+        function shrink(x, y, ratio) {
+            const force = -1 / (((x - CANVAS_CENTER_X) ** 2 + (y - CANVAS_CENTER_Y) ** 2) ** 0.6);
+            const dx = ratio * force * (x - CANVAS_CENTER_X);
+            const dy = ratio * force * (y - CANVAS_CENTER_Y);
+            return {
+                x: x - dx,
+                y: y - dy
+            };
+        }
+
+        // 曲线函数 - 减慢跳动频率
+        function curve(p) {
+            return 2 * (3 * Math.sin(2 * p)) / (2 * Math.PI); // 减小系数从4到2，使跳动变慢
+        }
+
+        // 计算位置
+        function calcPosition(x, y, ratio) {
+            const force = 1 / (((x - CANVAS_CENTER_X) ** 2 + (y - CANVAS_CENTER_Y) ** 2) ** 0.520);
+            const dx = ratio * force * (x - CANVAS_CENTER_X) + Math.floor(Math.random() * 3) - 1;
+            const dy = ratio * force * (y - CANVAS_CENTER_Y) + Math.floor(Math.random() * 3) - 1;
+
+            return {
+                x: x - dx,
+                y: y - dy
+            };
+        }
+
+        // 爱心类
+        class Heart {
+            constructor(generateFrame = 30) { // 增加帧数，使动画更平滑
+                this._points = new Set();
+                this._edgeDiffusionPoints = new Set();
+                this._centerDiffusionPoints = new Set();
+                this.allPoints = {};
+                this.randomHalo = 1000;
+                this.generateFrame = generateFrame;
+
+                this.build(2000);
+
+                for (let frame = 0; frame < generateFrame; frame++) {
+                    this.calc(frame);
+                }
+            }
+
+            build(number) {
+                // 创建基础爱心点
+                for (let i = 0; i < number; i++) {
+                    const t = Math.random() * 2 * Math.PI;
+                    const {x, y} = heartFunction(t);
+                    this._points.add(JSON.stringify([x, y]));
+                }
+
+                // 边缘扩散点
+                this._points.forEach(pointStr => {
+                    const [x, y] = JSON.parse(pointStr);
+                    for (let i = 0; i < 3; i++) {
+                        const newPoint = scatterInside(x, y, 0.05);
+                        this._edgeDiffusionPoints.add(JSON.stringify([newPoint.x, newPoint.y]));
+                    }
+                });
+
+                // 中心扩散点
+                const pointArray = Array.from(this._points);
+                for (let i = 0; i < 4000; i++) {
+                    const randomPoint = JSON.parse(pointArray[Math.floor(Math.random() * pointArray.length)]);
+                    const newPoint = scatterInside(randomPoint[0], randomPoint[1], 0.17);
+                    this._centerDiffusionPoints.add(JSON.stringify([newPoint.x, newPoint.y]));
+                }
+            }
+
+            calc(generateFrame) {
+                // 减慢跳动频率 - 减小曲线函数中的系数
+                const ratio = 8 * curve(generateFrame / 15 * Math.PI); // 减小系数从10到8，增加分母从10到15
+                const haloRadius = Math.floor(4 + 6 * (1 + curve(generateFrame / 15 * Math.PI))); // 同样调整这里
+                const haloNumber = Math.floor(3000 + 4000 * Math.abs(curve(generateFrame / 15 * Math.PI) ** 2)); // 同样调整这里
+
+                const allPoints = [];
+
+                // 光环
+                const heartHaloPoint = new Set();
+                for (let i = 0; i < haloNumber; i++) {
+                    const t = Math.random() * 2 * Math.PI;
+                    let {x, y} = heartFunction(t, IMAGE_ENLARGE * 1.05); // 动态调整
+                    const shrunk = shrink(x, y, haloRadius);
+                    x = shrunk.x;
+                    y = shrunk.y;
+
+                    const pointStr = JSON.stringify([x, y]);
+                    if (!heartHaloPoint.has(pointStr)) {
+                        heartHaloPoint.add(pointStr);
+                        x += Math.floor(Math.random() * 29) - 14;
+                        y += Math.floor(Math.random() * 29) - 14;
+                        const size = [1, 2, 2][Math.floor(Math.random() * 3)];
+                        allPoints.push({x, y, size});
+                    }
+                }
+
+                // 轮廓点
+                this._points.forEach(pointStr => {
+                    const [x, y] = JSON.parse(pointStr);
+                    const newPos = calcPosition(x, y, ratio);
+                    const size = Math.floor(Math.random() * 3) + 1;
+                    allPoints.push({x: newPos.x, y: newPos.y, size});
+                });
+
+                // 边缘扩散点
+                this._edgeDiffusionPoints.forEach(pointStr => {
+                    const [x, y] = JSON.parse(pointStr);
+                    const newPos = calcPosition(x, y, ratio);
+                    const size = Math.floor(Math.random() * 2) + 1;
+                    allPoints.push({x: newPos.x, y: newPos.y, size});
+                });
+
+                // 中心扩散点
+                this._centerDiffusionPoints.forEach(pointStr => {
+                    const [x, y] = JSON.parse(pointStr);
+                    const newPos = calcPosition(x, y, ratio);
+                    const size = Math.floor(Math.random() * 2) + 1;
+                    allPoints.push({x: newPos.x, y: newPos.y, size});
+                });
+
+                this.allPoints[generateFrame] = allPoints;
+            }
+
+            render(renderCanvas, renderFrame) {
+                const ctx = renderCanvas.getContext('2d');
+                const frameData = this.allPoints[renderFrame % this.generateFrame];
+
+                frameData.forEach(point => {
+                    ctx.fillStyle = HEART_COLOR;
+                    ctx.fillRect(point.x, point.y, point.size, point.size);
+                });
+            }
+        }
+
+        // 初始化
+        const canvas = document.getElementById('heartCanvas');
+        const heart = new Heart();
+        let frame = 0;
+
+        // 动画循环 - 减慢帧率
+        function draw() {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            heart.render(canvas, frame);
+            frame++;
+            setTimeout(() => {
+                requestAnimationFrame(draw);
+            }, 200); // 增加延迟，从约16ms增加到200ms，使动画更慢
+        }
+
+        // 开始动画
+        draw();
+
+        // 窗口大小改变时调整画布
+        window.addEventListener('resize', function() {
+            adjustCanvasSize();
+        });
+    </script>
+</body>
+</html>

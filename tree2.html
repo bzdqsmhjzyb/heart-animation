@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>myvideo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #video-bg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            z-index: 2;
+            font-size: 14px;
+        }
+
+        /* 在移动设备上隐藏默认控件 */
+        @media (max-width: 768px) {
+            #video-bg::-webkit-media-controls {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <!-- 将下面的视频源替换为您的MP4文件路径 -->
+        <video id="video-bg" autoplay muted loop playsinline>
+            <source src="myvideo.mp4" type="video/mp4">
+            您的浏览器不支持HTML5视频播放。
+        </video>
+    </div>
+
+
+
+    <script>
+        // 获取视频元素
+        const video = document.getElementById('video-bg');
+
+        // 点击视频切换播放/暂停
+        video.addEventListener('click', function() {
+            if (video.paused) {
+                video.play();
+            } else {
+                video.pause();
+            }
+        });
+
+        // 双击视频切换全屏
+        video.addEventListener('dblclick', function() {
+            if (!document.fullscreenElement) {
+                if (video.requestFullscreen) {
+                    video.requestFullscreen();
+                } else if (video.webkitRequestFullscreen) {
+                    video.webkitRequestFullscreen();
+                } else if (video.mozRequestFullScreen) {
+                    video.mozRequestFullScreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                }
+            }
+        });
+
+        // 尝试自动播放（即使没有静音）
+        video.play().catch(function(error) {
+            console.log("自动播放被阻止: ", error);
+            // 显示提示信息
+            document.getElementById('instructions').innerHTML =
+                "点击视频开始播放";
+        });
+
+        // 视频加载错误处理
+        video.addEventListener('error', function() {
+            document.getElementById('instructions').innerHTML =
+                "视频加载失败，请检查视频路径是否正确";
+        });
+    </script>
+</body>
+</html>

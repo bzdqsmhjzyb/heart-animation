@@ -1,9 +1,253 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="zh-CN">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">-->
+<!--    <title>全屏视频播放</title>-->
+<!--    <style>-->
+<!--        * {-->
+<!--            margin: 0;-->
+<!--            padding: 0;-->
+<!--            box-sizing: border-box;-->
+<!--            -webkit-tap-highlight-color: transparent;-->
+<!--        }-->
+
+<!--        html, body {-->
+<!--            width: 100%;-->
+<!--            height: 100%;-->
+<!--            overflow: hidden;-->
+<!--            background: #000;-->
+<!--        }-->
+
+<!--        #main {-->
+<!--            position: absolute;-->
+<!--            top: 0;-->
+<!--            left: 0;-->
+<!--            width: 100%;-->
+<!--            height: 100%;-->
+<!--            display: flex;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--        }-->
+
+<!--        #video1 {-->
+<!--            width: 100%;-->
+<!--            height: 100%;-->
+<!--            object-fit: cover;-->
+<!--        }-->
+
+<!--        .hidden {-->
+<!--            display: none;-->
+<!--        }-->
+
+<!--        #loading {-->
+<!--            position: absolute;-->
+<!--            top: 50%;-->
+<!--            left: 50%;-->
+<!--            transform: translate(-50%, -50%);-->
+<!--            text-align: center;-->
+<!--            color: white;-->
+<!--            z-index: 10;-->
+<!--        }-->
+
+<!--        .spinner {-->
+<!--            width: 40px;-->
+<!--            height: 40px;-->
+<!--            border: 4px solid rgba(255, 255, 255, 0.3);-->
+<!--            border-radius: 50%;-->
+<!--            border-top-color: #fff;-->
+<!--            animation: spin 1s ease-in-out infinite;-->
+<!--            margin: 0 auto 15px;-->
+<!--        }-->
+
+<!--        @keyframes spin {-->
+<!--            to { transform: rotate(360deg); }-->
+<!--        }-->
+
+<!--        #status-message {-->
+<!--            position: absolute;-->
+<!--            top: 50%;-->
+<!--            left: 50%;-->
+<!--            transform: translate(-50%, -50%);-->
+<!--            background-color: rgba(0, 0, 0, 0.7);-->
+<!--            padding: 15px 25px;-->
+<!--            border-radius: 10px;-->
+<!--            font-size: 16px;-->
+<!--            text-align: center;-->
+<!--            opacity: 0;-->
+<!--            transition: opacity 0.3s;-->
+<!--            z-index: 10;-->
+<!--            color: white;-->
+<!--        }-->
+
+<!--        /* 横屏提示 */-->
+<!--        #orientation-warning {-->
+<!--            display: none;-->
+<!--            position: fixed;-->
+<!--            top: 0;-->
+<!--            left: 0;-->
+<!--            width: 100%;-->
+<!--            height: 100%;-->
+<!--            background-color: rgba(0, 0, 0, 0.9);-->
+<!--            z-index: 100;-->
+<!--            flex-direction: column;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--            padding: 20px;-->
+<!--            text-align: center;-->
+<!--            color: white;-->
+<!--        }-->
+
+<!--        #orientation-warning .icon {-->
+<!--            font-size: 60px;-->
+<!--            margin-bottom: 20px;-->
+<!--        }-->
+
+<!--        #orientation-warning p {-->
+<!--            font-size: 18px;-->
+<!--            margin-bottom: 10px;-->
+<!--        }-->
+
+<!--        /* 横屏检测 */-->
+<!--        @media (max-width: 768px) and (orientation: portrait) {-->
+<!--            #orientation-warning {-->
+<!--                display: flex;-->
+<!--            }-->
+<!--        }-->
+
+<!--        /* 竖屏检测 */-->
+<!--        @media (max-width: 768px) and (orientation: landscape) {-->
+<!--            #video1 {-->
+<!--                object-fit: cover;-->
+<!--            }-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--    <div id="main">-->
+<!--        <video id="video1" muted playsinline loop preload="auto">-->
+<!--            &lt;!&ndash; 请确保myvideo.mp4文件与HTML文件在同一目录 &ndash;&gt;-->
+<!--            <source src="myvideo.mp4" type="video/mp4">-->
+<!--            您的浏览器不支持HTML5视频播放。-->
+<!--        </video>-->
+<!--    </div>-->
+
+<!--    <div id="loading">-->
+<!--        <div class="spinner"></div>-->
+<!--        <p>视频加载中...</p>-->
+<!--    </div>-->
+
+<!--    <div id="status-message"></div>-->
+
+<!--    <div id="orientation-warning">-->
+<!--        <div class="icon">📱</div>-->
+<!--        <p>请将手机横屏以获得最佳观看体验</p>-->
+<!--        <p style="font-size: 14px; opacity: 0.7;">旋转手机后刷新页面</p>-->
+<!--    </div>-->
+
+<!--    <script>-->
+<!--        // 获取DOM元素-->
+<!--        const video = document.getElementById('video1');-->
+<!--        const loading = document.getElementById('loading');-->
+<!--        const statusMessage = document.getElementById('status-message');-->
+
+<!--        // 显示状态消息-->
+<!--        function showStatusMessage(message, duration = 2000) {-->
+<!--            statusMessage.textContent = message;-->
+<!--            statusMessage.style.opacity = 1;-->
+
+<!--            if (duration > 0) {-->
+<!--                setTimeout(() => {-->
+<!--                    statusMessage.style.opacity = 0;-->
+<!--                }, duration);-->
+<!--            }-->
+<!--        }-->
+
+<!--        // 初始化视频-->
+<!--        function initVideo() {-->
+<!--            // 隐藏加载指示器-->
+<!--            loading.classList.add('hidden');-->
+
+<!--            // 尝试自动播放-->
+<!--            const playPromise = video.play();-->
+
+<!--            if (playPromise !== undefined) {-->
+<!--                playPromise.then(() => {-->
+<!--                    // 自动播放成功-->
+<!--                    showStatusMessage('', 1500);-->
+<!--                }).catch(error => {-->
+<!--                    // 自动播放失败，显示提示-->
+<!--                    console.log('自动播放被阻止:', error);-->
+<!--                    showStatusMessage('点击屏幕开始播放视频', 0);-->
+
+<!--                    // 添加点击播放功能-->
+<!--                    document.addEventListener('click', function playOnClick() {-->
+<!--                        video.play();-->
+<!--                        showStatusMessage('视频开始播放', 1500);-->
+<!--                        document.removeEventListener('click', playOnClick);-->
+<!--                    }, { once: true });-->
+<!--                });-->
+<!--            }-->
+
+<!--            // 视频错误处理-->
+<!--            video.addEventListener('error', function() {-->
+<!--                loading.classList.add('hidden');-->
+<!--                showStatusMessage('视频加载失败，请检查视频文件是否存在', 0);-->
+<!--            });-->
+
+<!--            // 视频可以播放时隐藏加载指示器-->
+<!--            video.addEventListener('canplay', function() {-->
+<!--                loading.classList.add('hidden');-->
+<!--            });-->
+
+<!--            // 视频等待时显示加载指示器-->
+<!--            video.addEventListener('waiting', function() {-->
+<!--                loading.classList.remove('hidden');-->
+<!--            });-->
+
+<!--            // 视频播放时隐藏加载指示器-->
+<!--            video.addEventListener('playing', function() {-->
+<!--                loading.classList.add('hidden');-->
+<!--            });-->
+<!--        }-->
+
+<!--        // 页面加载完成后初始化视频-->
+<!--        document.addEventListener('DOMContentLoaded', function() {-->
+<!--            // 设置视频源加载后初始化-->
+<!--            video.addEventListener('loadeddata', initVideo);-->
+
+<!--            // 如果视频已经加载完成，直接初始化-->
+<!--            if (video.readyState >= 2) {-->
+<!--                initVideo();-->
+<!--            }-->
+<!--        });-->
+
+<!--        // 防止iOS Safari默认视频控制-->
+<!--        video.controls = false;-->
+
+<!--        // 处理页面可见性变化-->
+<!--        document.addEventListener('visibilitychange', function() {-->
+<!--            if (document.hidden) {-->
+<!--                // 页面隐藏时暂停视频-->
+<!--                if (!video.paused) {-->
+<!--                    video.pause();-->
+<!--                }-->
+<!--            } else {-->
+<!--                // 页面显示时尝试恢复播放-->
+<!--                if (video.paused && !video.ended) {-->
+<!--                    video.play().catch(e => console.log('恢复播放失败:', e));-->
+<!--                }-->
+<!--            }-->
+<!--        });-->
+<!--    </script>-->
+<!--</body>-->
+<!--</html>-->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全屏视频播放</title>
+    <title>竖屏全屏视频</title>
     <style>
         * {
             margin: 0;
@@ -80,45 +324,19 @@
             color: white;
         }
 
-        /* 横屏提示 */
-        #orientation-warning {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            z-index: 100;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            text-align: center;
-            color: white;
-        }
-
-        #orientation-warning .icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-        }
-
-        #orientation-warning p {
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-
-        /* 横屏检测 */
-        @media (max-width: 768px) and (orientation: portrait) {
-            #orientation-warning {
-                display: flex;
+        /* 针对竖屏优化 */
+        @media (orientation: portrait) {
+            #video1 {
+                object-fit: cover;
             }
         }
 
-        /* 竖屏检测 */
-        @media (max-width: 768px) and (orientation: landscape) {
+        /* 针对横屏优化 */
+        @media (orientation: landscape) {
             #video1 {
-                object-fit: cover;
+                object-fit: contain;
+                width: auto;
+                height: 100%;
             }
         }
     </style>
@@ -138,12 +356,6 @@
     </div>
 
     <div id="status-message"></div>
-
-    <div id="orientation-warning">
-        <div class="icon">📱</div>
-        <p>请将手机横屏以获得最佳观看体验</p>
-        <p style="font-size: 14px; opacity: 0.7;">旋转手机后刷新页面</p>
-    </div>
 
     <script>
         // 获取DOM元素
@@ -236,6 +448,27 @@
                 // 页面显示时尝试恢复播放
                 if (video.paused && !video.ended) {
                     video.play().catch(e => console.log('恢复播放失败:', e));
+                }
+            }
+        });
+
+        // 添加双击全屏功能
+        video.addEventListener('dblclick', function() {
+            if (!document.fullscreenElement) {
+                if (video.requestFullscreen) {
+                    video.requestFullscreen();
+                } else if (video.webkitRequestFullscreen) {
+                    video.webkitRequestFullscreen();
+                } else if (video.mozRequestFullScreen) {
+                    video.mozRequestFullScreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
                 }
             }
         });
